@@ -39,7 +39,7 @@ next_one = [os.path.join(cats, fname)
 next_two = [os.path.join(dogs, fname)
               for fname in two_files[pic_index - 2:pic_index]]
 
-"""
+
 for i, img_path in enumerate(next_one + next_two):
     img = mpimg.imread(img_path)
     plt.imshow(img)
@@ -47,7 +47,7 @@ for i, img_path in enumerate(next_one + next_two):
     plt.show()
     if i>10:
         break
-"""
+
 
 import tensorflow as tf
 import keras_preprocessing
@@ -63,7 +63,6 @@ training_datagen = ImageDataGenerator(
     height_shift_range=0.2,
     shear_range=0.2,
     zoom_range=0.2,
-    horizontal_flip=True,
     vertical_flip=True,
     fill_mode='nearest')
 
@@ -90,7 +89,7 @@ validation_generator = validation_datagen.flow_from_directory(
 
 class myCallback(tf.keras.callbacks.Callback):
   def on_epoch_end(self, epoch, logs={}):
-    if(logs.get('acc')>0.8):
+    if(logs.get('acc')>0.75):
       print("\nReached 80% accuracy so cancelling training!")
       self.model.stop_training = True
 
@@ -104,33 +103,33 @@ callbacks = myCallback()
 
 
 # FEEDBACK PYUISH USE BATCH NORMALIZATION, REDURE DROUPOUT to 1% and use DIALATION AND EROSION WITH CUT-OFFS 
+
 model = tf.keras.models.Sequential([
-    # Note the input shape is the desired size of the image 150x150 with 3 bytes color
-    # This is the first convolution
-    tf.keras.layers.Conv2D(64, (3, 3), activation='relu', input_shape=(640, 480, 2)),
+    tf.keras.layers.Conv2D(64, (3,3), activation='relu', input_shape=(640, 480, 3)),
     tf.keras.layers.MaxPooling2D(2, 2),
-    # The second convolution
-    tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
-    tf.keras.layers.MaxPooling2D(2, 2),
-    # The third convolution
-    tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
-    tf.keras.layers.MaxPooling2D(2, 2),
-    # The fourth convolution
-    tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
-    tf.keras.layers.MaxPooling2D(2, 2),
-    # Flatten the results to feed into a DNN
+    tf.keras.layers.Conv2D(64, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
+    tf.keras.layers.Conv2D(128, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
+    tf.keras.layers.Conv2D(128, (3,3), activation='relu'),
+    tf.keras.layers.MaxPooling2D(2,2),
     tf.keras.layers.Flatten(),
     tf.keras.layers.Dropout(0.5),
-    # 512 neuron hidden layer
     tf.keras.layers.Dense(512, activation='relu'),
     tf.keras.layers.Dense(2, activation='softmax')
 ])
 
 model.summary()
 
-model.compile(loss='categorical_crossentropy', optimizer='rmsprop', metrics=['accuracy'])
 
-history = model.fit_generator(train_generator, epochs=25, validation_data=validation_generator, verbose=1, callbacks=[callbacks])
+
+from tensorflow.keras.optimizers import RMSprop
+
+model.compile(loss='categorical_crossentropy',
+              optimizer=RMSprop(lr=1e-4),
+              metrics=['accuracy'])
+
+history = model.fit_generator(train_generator, epochs=10,steps_per_epoch=250, validation_data=validation_generator, verbose=1, validation_steps=8,callbacks=[callbacks])
 
 model.save("Animal.h5")
 
